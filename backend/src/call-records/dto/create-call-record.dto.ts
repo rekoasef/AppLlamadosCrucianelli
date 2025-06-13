@@ -1,6 +1,12 @@
+// backend/src/call-records/dto/create-call-record.dto.ts
+
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateCallRecordDto {
+  @IsString()
+  @IsNotEmpty()
+  callerTypeId: string;
+
   @IsString()
   @IsNotEmpty()
   contactName: string;
@@ -8,19 +14,7 @@ export class CreateCallRecordDto {
   @IsString()
   @IsOptional()
   machineSerialNumber?: string;
-  
-  @IsString()
-  @IsOptional()
-  observations?: string;
 
-  @IsString()
-  @IsNotEmpty()
-  businessUnitId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  callerTypeId: string;
-  
   @IsString()
   @IsOptional()
   machineTypeId?: string;
@@ -28,7 +22,7 @@ export class CreateCallRecordDto {
   @IsString()
   @IsOptional()
   billedClient?: string;
-
+  
   @IsString()
   @IsOptional()
   dealershipId?: string;
@@ -36,6 +30,10 @@ export class CreateCallRecordDto {
   @IsString()
   @IsNotEmpty()
   inquiryAreaId: string;
+  
+  @IsString()
+  @IsOptional()
+  observations?: string;
 
   @IsString()
   @IsOptional()
@@ -44,11 +42,11 @@ export class CreateCallRecordDto {
   @IsString()
   @IsNotEmpty()
   contactChannelId: string;
-
+  
   @IsString()
   @IsNotEmpty()
   durationRangeId: string;
-
+  
   @IsString()
   @IsNotEmpty()
   urgencyLevelId: string;

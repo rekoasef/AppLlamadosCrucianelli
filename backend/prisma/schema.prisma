@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// backend/prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
@@ -10,140 +9,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ===============================================
-// Modelo Principal: Registro de Llamadas
-// ===============================================
-// Cada registro es el corazón de la aplicación.
 model CallRecord {
-  id                  String   @id @default(cuid())
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  contactName         String // Nombre y apellido del contacto
-  machineSerialNumber String? // OF o número de serie de la máquina
-  observations        String?  @db.Text // Observaciones (campo de texto largo)
-  status              CallStatus @default(OPEN) // Estado del ticket
+  id                  String     @id @default(cuid())
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  contactName         String
+  machineSerialNumber String?
+  observations        String?    @db.Text
+  status              CallStatus @default(OPEN)
 
-  // --- Relaciones con tablas de negocio ---
-  businessUnit        BusinessUnit @relation(fields: [businessUnitId], references: [id])
-  businessUnitId      String
+  // --- RELACIÓN CON BUSINESSUNIT ELIMINADA ---
 
-  handledBy           User?     @relation(fields: [handledById], references: [id]) // El usuario del call center que atendió
-  handledById         String?
+  // El usuario del call center que atendió la llamada
+  handledBy   User?   @relation("HandledBy", fields: [handledById], references: [id])
+  handledById String?
 
-  // --- Relaciones con tablas de catálogo (para los desplegables) ---
-  callerType          CallerType @relation(fields: [callerTypeId], references: [id])
-  callerTypeId        String
+  // El usuario que creó el registro en el sistema
+  createdByUser User   @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById   String
 
-  machineType         MachineType? @relation(fields: [machineTypeId], references: [id])
-  machineTypeId       String?
+  // --- Relaciones con tablas de catálogo ---
+  callerType   CallerType @relation(fields: [callerTypeId], references: [id])
+  callerTypeId String
 
-  billedClient        String? // Cliente facturado (puede ser texto libre por ahora)
-  
-  dealership          Dealership? @relation(fields: [dealershipId], references: [id])
-  dealershipId        String?
+  machineType   MachineType? @relation(fields: [machineTypeId], references: [id])
+  machineTypeId String?
 
-  inquiryArea         InquiryArea @relation(fields: [inquiryAreaId], references: [id])
-  inquiryAreaId       String
+  billedClient String? 
 
-  responseReason      ResponseReason? @relation(fields: [responseReasonId], references: [id])
-  responseReasonId    String?
+  dealership   Dealership? @relation(fields: [dealershipId], references: [id])
+  dealershipId String?
 
-  contactChannel      ContactChannel @relation(fields: [contactChannelId], references: [id])
-  contactChannelId    String
+  inquiryArea   InquiryArea @relation(fields: [inquiryAreaId], references: [id])
+  inquiryAreaId String
 
-  durationRange       DurationRange @relation(fields: [durationRangeId], references: [id])
-  durationRangeId     String
+  responseReason   ResponseReason? @relation(fields: [responseReasonId], references: [id])
+  responseReasonId String?
 
-  urgencyLevel        UrgencyLevel @relation(fields: [urgencyLevelId], references: [id])
-  urgencyLevelId      String
+  contactChannel   ContactChannel @relation(fields: [contactChannelId], references: [id])
+  contactChannelId String
+
+  durationRange   DurationRange @relation(fields: [durationRangeId], references: [id])
+  durationRangeId String
+
+  urgencyLevel   UrgencyLevel @relation(fields: [urgencyLevelId], references: [id])
+  urgencyLevelId String
 }
 
-// ===============================================
-// Modelos de Autenticación y Negocio
-// ===============================================
-
-// Modelo para los usuarios del sistema (empleados del call center)
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
-  password  String // Guardaremos el hash, no la contraseña en texto plano
+  password  String
   role      UserRole @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  handledCalls CallRecord[] // Un usuario puede atender muchas llamadas
+  handledCalls CallRecord[] @relation("HandledBy")
+  createdCalls CallRecord[] @relation("CreatedBy")
 }
 
-// Unidades de negocio (Crucianelli, Leaf, Fertec)
-model BusinessUnit {
-  id      String   @id @default(cuid())
-  name    String   @unique // "Crucianelli", "Leaf", "Fertec"
-  
-  callRecords CallRecord[] // Una unidad de negocio tiene muchos registros
-}
+// --- MODELO BUSINESSUNIT ELIMINADO ---
 
 // ===============================================
 // Modelos de Catálogo (para los desplegables)
 // ===============================================
-// Usar tablas para estos valores nos da flexibilidad para añadirlos o quitarlos desde un panel de admin en el futuro.
 
 model CallerType {
-  id      String   @id @default(cuid())
-  name    String   @unique // Ej: "Cliente Final", "Concesionario", "Interno"
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
 
 model MachineType {
-  id      String   @id @default(cuid())
-  name    String   @unique // Ej: "Gringa", "Pionera", "Plantor"
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
 
 model Dealership {
-  id      String   @id @default(cuid())
-  name    String   @unique
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
 
 model InquiryArea {
-  id      String   @id @default(cuid())
-  name    String   @unique // Ej: "Repuestos", "Ingeniería", "Servicios"
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
 
 model ResponseReason {
-  id      String   @id @default(cuid())
-  name    String   @unique // Ej: "Consulta técnica", "Pedido de repuesto", "Queja"
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
 
 model ContactChannel {
-  id      String   @id @default(cuid())
-  name    String   @unique // Ej: "Llamada Telefónica", "WhatsApp", "Email"
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
 
 model DurationRange {
-  id      String   @id @default(cuid())
-  name    String   @unique // Ej: "Menos de 5 min", "5-15 min", "Más de 15 min"
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
 
 model UrgencyLevel {
-  id      String   @id @default(cuid())
-  name    String   @unique // Ej: "Baja", "Normal", "Alta", "Crítica"
+  id      String       @id @default(cuid())
+  name    String       @unique
   records CallRecord[]
 }
-
 
 // ===============================================
 // Enums (Valores Fijos)
 // ===============================================
 
 enum UserRole {
-  ADMIN // Puede gestionar usuarios y configuraciones
-  USER  // Puede gestionar registros de llamadas
+  ADMIN
+  USER
 }
 
 enum CallStatus {
