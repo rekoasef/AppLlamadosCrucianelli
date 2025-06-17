@@ -10,70 +10,73 @@ datasource db {
 }
 
 model CallRecord {
-  id                  String     @id @default(cuid())
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  id                  String   @id @default(cuid())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
   contactName         String
   machineSerialNumber String?
-  observations        String?    @db.Text
+  observations        String?  @db.Text
   status              CallStatus @default(OPEN)
+  
+  // --- CAMPO NUEVO PARA DATOS ESPECÍFICOS ---
+  // Este es nuestro "cajón de sastre".
+  // Guardará un objeto JSON con los campos únicos de cada formulario.
+  specificData        Json?
 
-  // --- RELACIÓN CON BUSINESSUNIT ELIMINADA ---
+  // --- RELACIÓN CON BUSINESSUNIT REINTRODUCIDA ---
+  // Ahora cada registro DEBE pertenecer a una unidad de negocio.
+  businessUnit        BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  businessUnitId      String
 
   // El usuario del call center que atendió la llamada
-  handledBy   User?   @relation("HandledBy", fields: [handledById], references: [id])
-  handledById String?
+  handledBy           User?    @relation("HandledBy", fields: [handledById], references: [id])
+  handledById         String?
 
   // El usuario que creó el registro en el sistema
-  createdByUser User   @relation("CreatedBy", fields: [createdById], references: [id])
-  createdById   String
+  createdByUser       User     @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById         String
 
-  // --- Relaciones con tablas de catálogo ---
-  callerType   CallerType @relation(fields: [callerTypeId], references: [id])
-  callerTypeId String
+  // --- Relaciones con tablas de catálogo (se mantienen igual) ---
+  callerType          CallerType     @relation(fields: [callerTypeId], references: [id])
+  callerTypeId        String
+  machineType         MachineType?   @relation(fields: [machineTypeId], references: [id])
+  machineTypeId       String?
+  billedClient        String?
+  dealership          Dealership?    @relation(fields: [dealershipId], references: [id])
+  dealershipId        String?
+  inquiryArea         InquiryArea    @relation(fields: [inquiryAreaId], references: [id])
+  inquiryAreaId       String
+  responseReason      ResponseReason? @relation(fields: [responseReasonId], references: [id])
+  responseReasonId    String?
+  contactChannel      ContactChannel @relation(fields: [contactChannelId], references: [id])
+  contactChannelId    String
+  durationRange       DurationRange  @relation(fields: [durationRangeId], references: [id])
+  durationRangeId     String
+  urgencyLevel        UrgencyLevel   @relation(fields: [urgencyLevelId], references: [id])
+  urgencyLevelId      String
+}
 
-  machineType   MachineType? @relation(fields: [machineTypeId], references: [id])
-  machineTypeId String?
-
-  billedClient String? 
-
-  dealership   Dealership? @relation(fields: [dealershipId], references: [id])
-  dealershipId String?
-
-  inquiryArea   InquiryArea @relation(fields: [inquiryAreaId], references: [id])
-  inquiryAreaId String
-
-  responseReason   ResponseReason? @relation(fields: [responseReasonId], references: [id])
-  responseReasonId String?
-
-  contactChannel   ContactChannel @relation(fields: [contactChannelId], references: [id])
-  contactChannelId String
-
-  durationRange   DurationRange @relation(fields: [durationRangeId], references: [id])
-  durationRangeId String
-
-  urgencyLevel   UrgencyLevel @relation(fields: [urgencyLevelId], references: [id])
-  urgencyLevelId String
+// --- MODELO BUSINESSUNIT REINTRODUCIDO ---
+// Esencial para saber qué formulario mostrar en el frontend.
+model BusinessUnit {
+  id          String       @id @default(cuid())
+  name        String       @unique // "Crucianelli", "Leaf", "Fertec"
+  callRecords CallRecord[]
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String
-  role      UserRole @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  password     String
+  role         UserRole     @default(USER)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
   handledCalls CallRecord[] @relation("HandledBy")
   createdCalls CallRecord[] @relation("CreatedBy")
 }
 
-// --- MODELO BUSINESSUNIT ELIMINADO ---
-
-// ===============================================
-// Modelos de Catálogo (para los desplegables)
-// ===============================================
+// ... (Los demás modelos de catálogo y enums se mantienen exactamente igual) ...
 
 model CallerType {
   id      String       @id @default(cuid())
@@ -122,10 +125,6 @@ model UrgencyLevel {
   name    String       @unique
   records CallRecord[]
 }
-
-// ===============================================
-// Enums (Valores Fijos)
-// ===============================================
 
 enum UserRole {
   ADMIN

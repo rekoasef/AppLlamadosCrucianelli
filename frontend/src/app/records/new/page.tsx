@@ -1,219 +1,221 @@
-// frontend/src/app/records/new/page.tsx
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import api from '@/services/api';
+import { useState, useEffect, FormEvent, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { crucianelliFormConfig, FormField, FormData, Catalogs } from '@/config/form-config';
 
-// Interfaz para los items de los catálogos
-interface CatalogItem {
-  id: string;
-  name: string;
-}
+// Un componente genérico para renderizar cualquier campo del formulario
+const DynamicField = ({ field, value, catalogs, handleChange }: { field: FormField, value: any, catalogs: Catalogs, handleChange: (e: any) => void }) => {
+  const commonClasses = "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-crucianelli-red focus:ring-crucianelli-red sm:text-sm text-crucianelli-dark";
 
-// Interfaz para el formulario, actualizada sin businessUnitId
-interface FormData {
-  callerTypeId: string;
-  contactName: string;
-  machineSerialNumber: string;
-  machineTypeId: string;
-  billedClient: string;
-  dealershipId: string;
-  inquiryAreaId: string;
-  observations: string;
-  responseReasonId: string;
-  contactChannelId: string;
-  durationRangeId: string;
-  urgencyLevelId: string;
-}
+  switch (field.type) {
+    case 'select':
+      return (
+        <select name={field.name} value={value || ''} onChange={handleChange} required={field.required} className={commonClasses}>
+          <option value="">Seleccionar...</option>
+          {field.optionsKey && catalogs[field.optionsKey]?.map((option: any) => (
+            <option key={option.id} value={option.id}>{option.name}</option>
+          ))}
+        </select>
+      );
+    case 'textarea':
+      return <textarea name={field.name} value={value || ''} onChange={handleChange} required={field.required} rows={5} className={commonClasses} />;
+    case 'text':
+    default:
+      return <input type="text" name={field.name} value={value || ''} onChange={handleChange} required={field.required} className={commonClasses} />;
+  }
+};
+
 
 export default function NewRecordPage() {
-  // Estado para los catálogos, ahora en un solo objeto para mayor limpieza
-  const [catalogs, setCatalogs] = useState<Record<string, CatalogItem[]>>({});
+  const { token } = useAuth();
+  const router = useRouter();
 
-  // Estado para el formulario, con su valor inicial
-  const [formData, setFormData] = useState<FormData>({
-    callerTypeId: '',
-    contactName: '',
-    machineSerialNumber: '',
-    machineTypeId: '',
-    billedClient: '',
-    dealershipId: '',
-    inquiryAreaId: '',
-    observations: '',
-    responseReasonId: '',
-    contactChannelId: '',
-    durationRangeId: '',
-    urgencyLevelId: '',
-  });
+  // Estados
+  const [businessUnits, setBusinessUnits] = useState<any[]>([]);
+  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = useState<string>('');
+  const [catalogs, setCatalogs] = useState<Catalogs>({});
+  const [formData, setFormData] = useState<Partial<FormData>>({});
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // useEffect para cargar los catálogos
+  // Determina qué "plano" de formulario usar basado en la selección
+  const formConfig = useMemo(() => {
+    const selectedUnit = businessUnits.find(bu => bu.id === selectedBusinessUnitId);
+    if (selectedUnit?.name === 'Crucianelli') {
+      return crucianelliFormConfig;
+    }
+    return []; // Por defecto, ningún campo
+  }, [selectedBusinessUnitId, businessUnits]);
+
+  // Cargar catálogos y unidades de negocio
   useEffect(() => {
-    const fetchCatalogs = async () => {
-      // Lista de endpoints de catálogo, actualizada sin business-units
-      const catalogEndpoints = [
-        'caller-types', 'machine-types', 'dealerships', 'inquiry-areas', 
-        'response-reasons', 'contact-channels', 'duration-ranges', 'urgency-levels'
-      ];
-      
+    if (!token) return;
+
+    const fetchInitialData = async () => {
       try {
+        const catalogEndpoints = ['business-units', 'caller-types', 'machine-types', 'dealerships', 'inquiry-areas', 'response-reasons', 'contact-channels', 'duration-ranges', 'urgency-levels'];
         const responses = await Promise.all(
-          catalogEndpoints.map(endpoint => api.get(`/catalogs/${endpoint}`))
+          catalogEndpoints.map(endpoint => fetch(`http://localhost:3000/catalogs/${endpoint}`, { headers: { 'Authorization': `Bearer ${token}` } }))
         );
+        const jsonData = await Promise.all(responses.map(res => res.json()));
         
-        const newCatalogs = responses.reduce((acc, res, index) => {
-          // Usamos el nombre del endpoint como clave para el catálogo
-          const key = catalogEndpoints[index].replace(/-/g, '_');
-          acc[key] = res.data;
+        const businessUnitsData = jsonData[0];
+        setBusinessUnits(businessUnitsData);
+
+        const catalogsData = catalogEndpoints.slice(1).reduce((acc, endpoint, index) => {
+          const key = endpoint.replace(/-(\w)/g, (_, c) => c.toUpperCase());
+          acc[key] = jsonData[index + 1];
           return acc;
-        }, {} as Record<string, CatalogItem[]>);
+        }, {} as Catalogs);
+        setCatalogs(catalogsData);
 
-        setCatalogs(newCatalogs);
-        console.log('Catálogos cargados:', newCatalogs);
-
-      } catch (error) {
-        console.error("Error al cargar los catálogos:", error);
+      } catch (err: any) {
+        setError("Error al cargar datos iniciales. " + err.message);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchCatalogs();
-  }, []);
-  
-  // Función única para manejar todos los cambios del formulario
+    fetchInitialData();
+  }, [token]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prevState => ({ ...prevState, [name]: value }));
   };
 
-  // Función para manejar el envío del formulario
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); 
-    
-    // Obtenemos el token (usando prompt por ahora)
-    const token = prompt("Por favor, introduce un token de acceso válido:");
-    if (!token) {
-      alert("El token es necesario para crear un registro.");
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedBusinessUnitId) {
+      setError("Por favor, seleccione una unidad de negocio.");
       return;
     }
+    setIsSubmitting(true);
+    setError(null);
     
-    console.log("Enviando datos al backend:", formData);
+    const submissionData = {
+      ...formData,
+      businessUnitId: selectedBusinessUnitId,
+    };
 
     try {
-      const response = await api.post('/call-records', formData, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch('http://localhost:3000/call-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(submissionData),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message?.[0] || 'Error al crear el registro.');
+      }
       
-      alert('¡Registro creado con éxito!');
-      console.log("Respuesta del servidor:", response.data);
-      // Podríamos limpiar el formulario aquí si quisiéramos
-      
-    } catch (error) {
-      console.error("Error al crear el registro:", error);
-      alert('Hubo un error al crear el registro. Revisa la consola.');
+      router.push('/records');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+  
+  if (isLoading) return <div className="p-8 text-center">Cargando...</div>;
 
-  // El JSX del formulario, ahora actualizado a la especificación del PDF
   return (
-    <main className="p-4 md:p-8">
-      <h1 className="text-2xl font-bold mb-6">Registro de Llamadas</h1>
+    <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-crucianelli-dark">Nuevo Registro de Llamada</h1>
+          <Link href="/records" className="text-sm font-medium text-crucianelli-red hover:text-opacity-80">&larr; Volver a la lista</Link>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow mb-8">
+        <label htmlFor="businessUnit" className="block text-lg font-semibold text-crucianelli-dark">Unidad de Negocio</label>
+        <p className="text-sm text-crucianelli-gray mb-2">Seleccione la empresa para la cual se está registrando la llamada.</p>
+        <select
+          id="businessUnit"
+          value={selectedBusinessUnitId}
+          onChange={(e) => setSelectedBusinessUnitId(e.target.value)}
+          className="mt-1 block w-full md:w-1/3 border-gray-300 rounded-md shadow-sm focus:border-crucianelli-red focus:ring-crucianelli-red sm:text-sm text-crucianelli-dark"
+        >
+          <option value="">Seleccionar empresa...</option>
+          {businessUnits.map(bu => <option key={bu.id} value={bu.id}>{bu.name}</option>)}
+        </select>
+      </div>
       
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-          
-          {/* Columna Izquierda */}
-          <div>
-            <label htmlFor="callerTypeId" className="block text-sm font-medium text-gray-700">1. ¿Quién llama?</label>
-            <select name="callerTypeId" value={formData.callerTypeId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.caller_types?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
+      {selectedBusinessUnitId && (
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 space-y-6">
+            {/* Tarjeta de Detalles del Contacto */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Detalles del Contacto</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {formConfig.filter(f => ['callerTypeId', 'contactName', 'dealershipId', 'billedClient'].includes(f.name)).map(field => (
+                  <div key={field.name}>
+                    <label htmlFor={field.name} className="block text-sm font-medium text-crucianelli-gray">{field.label}</label>
+                    <DynamicField field={field} value={formData[field.name as keyof FormData]} catalogs={catalogs} handleChange={handleChange} />
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div>
-            <label htmlFor="contactName" className="block text-sm font-medium text-gray-700">2. Nombre y Apellido de quien realiza el llamado</label>
-            <input type="text" name="contactName" value={formData.contactName} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" />
-          </div>
-          
-          <div>
-            <label htmlFor="machineSerialNumber" className="block text-sm font-medium text-gray-700">3. OF de la Máquina (acuñado en chasis)</label>
-            <input type="text" name="machineSerialNumber" value={formData.machineSerialNumber} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" />
-          </div>
+            {/* Tarjeta de Información de la Máquina */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Información de la Máquina</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {formConfig.filter(f => ['machineTypeId', 'machineSerialNumber'].includes(f.name)).map(field => (
+                  <div key={field.name}>
+                    <label htmlFor={field.name} className="block text-sm font-medium text-crucianelli-gray">{field.label}</label>
+                    <DynamicField field={field} value={formData[field.name as keyof FormData]} catalogs={catalogs} handleChange={handleChange} />
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div>
-            <label htmlFor="machineTypeId" className="block text-sm font-medium text-gray-700">4. Tipo de Máquina</label>
-            <select name="machineTypeId" value={formData.machineTypeId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.machine_types?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="billedClient" className="block text-sm font-medium text-gray-700">5. Cliente (Idéntico a como salió facturada la máquina)</label>
-            <input type="text" name="billedClient" value={formData.billedClient} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" />
-          </div>
-
-          <div>
-            <label htmlFor="dealershipId" className="block text-sm font-medium text-gray-700">6. Concesionario</label>
-            <select name="dealershipId" value={formData.dealershipId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.dealerships?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
-
-          {/* Columna Derecha */}
-          <div>
-            <label htmlFor="inquiryAreaId" className="block text-sm font-medium text-gray-700">7. Área de la consulta o reclamo</label>
-            <select name="inquiryAreaId" value={formData.inquiryAreaId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.inquiry_areas?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="responseReasonId" className="block text-sm font-medium text-gray-700">9. Motivo o Respuesta</label>
-            <select name="responseReasonId" value={formData.responseReasonId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.response_reasons?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="contactChannelId" className="block text-sm font-medium text-gray-700">10. Canal de contacto</label>
-            <select name="contactChannelId" value={formData.contactChannelId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.contact_channels?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            {/* Tarjeta de Observaciones */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Detalle de la Consulta</h2>
+              {formConfig.filter(f => f.name === 'observations').map(field => (
+                <div key={field.name}>
+                  <label htmlFor={field.name} className="block text-sm font-medium text-crucianelli-gray">{field.label}</label>
+                  <DynamicField field={field} value={formData[field.name as keyof FormData]} catalogs={catalogs} handleChange={handleChange} />
+                </div>
+              ))}
+            </div>
           </div>
           
-          <div>
-            <label htmlFor="durationRangeId" className="block text-sm font-medium text-gray-700">11. Duración del contacto</label>
-            <select name="durationRangeId" value={formData.durationRangeId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.duration_ranges?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </div>
+          <div className="md:col-span-1 space-y-6">
+            {/* Tarjeta de Clasificación */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Clasificación</h2>
+              <div className="space-y-4">
+                {formConfig.filter(f => ['inquiryAreaId', 'responseReasonId', 'urgencyLevelId', 'contactChannelId', 'durationRangeId'].includes(f.name)).map(field => (
+                  <div key={field.name}>
+                    <label htmlFor={field.name} className="block text-sm font-medium text-crucianelli-gray">{field.label}</label>
+                    <DynamicField field={field} value={formData[field.name as keyof FormData]} catalogs={catalogs} handleChange={handleChange} />
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div>
-            <label htmlFor="urgencyLevelId" className="block text-sm font-medium text-gray-700">12. Urgencia</label>
-            <select name="urgencyLevelId" value={formData.urgencyLevelId} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-              <option value="">Seleccione una opción</option>
-              {catalogs.urgency_levels?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
+            {/* Tarjeta de Acciones */}
+            <div className="bg-white p-6 rounded-lg shadow">
+               <h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Acciones</h2>
+               {error && <div className="mb-4 text-red-600 text-sm bg-red-100 p-3 rounded-md">{error}</div>}
+               <div className="flex flex-col gap-4">
+                <button type="submit" disabled={isSubmitting} className="w-full px-4 py-2 text-sm font-medium text-white bg-crucianelli-red rounded-md hover:bg-opacity-90 disabled:bg-opacity-50 transition-colors">
+                  {isSubmitting ? 'Guardando...' : 'Guardar Registro'}
+                </button>
+                <button type="button" onClick={() => router.push('/records')} className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        {/* Campo de Observaciones */}
-        <div className="col-span-1 md:col-span-2">
-          <label htmlFor="observations" className="block text-sm font-medium text-gray-700">8. Observación (Descripción del reclamo)</label>
-          <textarea name="observations" value={formData.observations} onChange={handleChange} rows={5} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"></textarea>
-        </div>
-
-        {/* Botón de Envío */}
-        <div className="flex justify-end pt-4">
-          <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors">
-            Guardar Registro
-          </button>
-        </div>
-      </form>
-    </main>
+        </form>
+      )}
+    </div>
   );
 }

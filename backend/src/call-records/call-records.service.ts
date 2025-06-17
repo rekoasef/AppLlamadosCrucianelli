@@ -1,6 +1,4 @@
-// backend/src/call-records/call-records.service.ts
-
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCallRecordDto } from './dto/create-call-record.dto';
 import { UpdateCallRecordDto } from './dto/update-call-record.dto';
@@ -9,52 +7,74 @@ import { UpdateCallRecordDto } from './dto/update-call-record.dto';
 export class CallRecordsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createCallRecordDto: CreateCallRecordDto, userId: string) {
-    // Desestructuramos el DTO, ahora sin businessUnitId
-    const {
-      callerTypeId,
-      machineTypeId,
-      dealershipId,
-      inquiryAreaId,
-      responseReasonId,
-      contactChannelId,
-      durationRangeId,
-      urgencyLevelId,
-      ...otherData // El resto de los campos (contactName, observations, etc.)
-    } = createCallRecordDto;
-
-    // Construimos el objeto para Prisma, ahora sin la conexión a businessUnit
-    const recordData = {
-      ...otherData,
-      createdByUser:  { connect: { id: userId } },
-      callerType:     { connect: { id: callerTypeId } },
-      machineType:    machineTypeId ? { connect: { id: machineTypeId } } : undefined,
-      dealership:     dealershipId ? { connect: { id: dealershipId } } : undefined,
-      inquiryArea:    { connect: { id: inquiryAreaId } },
-      responseReason: responseReasonId ? { connect: { id: responseReasonId } } : undefined,
-      contactChannel: { connect: { id: contactChannelId } },
-      durationRange:  { connect: { id: durationRangeId } },
-      urgencyLevel:   { connect: { id: urgencyLevelId } },
-    };
-
+  create(createCallRecordDto: CreateCallRecordDto, userId: string) {
     return this.prisma.callRecord.create({
-      data: recordData,
+      data: {
+        ...createCallRecordDto,
+        createdById: userId,
+      },
     });
   }
 
   findAll() {
-    return `This action returns all callRecords`;
+    // ... (código existente)
+    return this.prisma.callRecord.findMany({
+      include: {
+        callerType: { select: { name: true } },
+        dealership: { select: { name: true } },
+        urgencyLevel: { select: { name: true } },
+        createdByUser: { select: { name: true } },
+        handledBy: { select: { name: true } },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} callRecord`;
+  async findOne(id: string) {
+    // ... (código existente)
+    const record = await this.prisma.callRecord.findUnique({
+      where: { id },
+      include: {
+        callerType: true,
+        machineType: true,
+        dealership: true,
+        inquiryArea: true,
+        responseReason: true,
+        contactChannel: true,
+        durationRange: true,
+        urgencyLevel: true,
+        createdByUser: { select: { name: true, email: true } },
+        handledBy: { select: { name: true, email: true } },
+      },
+    });
+
+    if (!record) {
+      throw new NotFoundException(`Registro con ID "${id}" no encontrado.`);
+    }
+    return record;
+  }
+  
+  async update(id: string, updateCallRecordDto: UpdateCallRecordDto) {
+    // ... (código existente)
+    await this.findOne(id); 
+    
+    return this.prisma.callRecord.update({
+      where: { id },
+      data: updateCallRecordDto,
+    });
   }
 
-  update(id: number, updateCallRecordDto: UpdateCallRecordDto) {
-    return `This action updates a #${id} callRecord`;
-  }
+  // --- NUEVO MÉTODO ---
+  async remove(id: string) {
+    // Nos aseguramos de que el registro exista antes de intentar borrarlo.
+    // findOne lanzará un error 404 si no lo encuentra.
+    await this.findOne(id);
 
-  remove(id: number) {
-    return `This action removes a #${id} callRecord`;
+    // Usamos prisma.delete para eliminar el registro.
+    return this.prisma.callRecord.delete({
+      where: { id },
+    });
   }
 }

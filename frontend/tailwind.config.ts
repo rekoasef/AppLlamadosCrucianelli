@@ -8,6 +8,16 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // --- INICIO DE LA SECCIÓN DE BRANDING ---
+      colors: {
+        crucianelli: {
+          red: '#D71920',    // El rojo principal de la marca
+          dark: '#212121',   // Un gris oscuro para texto principal
+          gray: '#5a5a5a',   // Un gris secundario
+          light: '#f5f5f5',  // Un gris muy claro para fondos
+        }
+      },
+      // --- FIN DE LA SECCIÓN DE BRANDING ---
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
@@ -15,6 +25,8 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms'),
+  ],
 }
 export default config

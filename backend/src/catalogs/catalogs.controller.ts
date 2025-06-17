@@ -1,5 +1,3 @@
-// backend/src/catalogs/catalogs.controller.ts
-
 import { Controller, Get } from '@nestjs/common';
 import { CatalogsService } from './catalogs.service';
 
@@ -7,45 +5,49 @@ import { CatalogsService } from './catalogs.service';
 export class CatalogsController {
   constructor(private readonly catalogsService: CatalogsService) {}
 
-  // ENDPOINT ELIMINADO: @Get('business-units')
+  // --- ENDPOINT REINTRODUCIDO ---
+  @Get('business-units')
+  findAllBusinessUnits() {
+    return this.catalogsService.findAllBusinessUnits();
+  }
 
   @Get('caller-types')
-  findCallerTypes() {
+  findAllCallerTypes() {
     return this.catalogsService.findAllCallerTypes();
   }
 
   @Get('machine-types')
-  findMachineTypes() {
+  findAllMachineTypes() {
     return this.catalogsService.findAllMachineTypes();
   }
 
   @Get('dealerships')
-  findDealerships() {
+  findAllDealerships() {
     return this.catalogsService.findAllDealerships();
   }
 
   @Get('inquiry-areas')
-  findInquiryAreas() {
+  findAllInquiryAreas() {
     return this.catalogsService.findAllInquiryAreas();
   }
 
   @Get('response-reasons')
-  findResponseReasons() {
+  findAllResponseReasons() {
     return this.catalogsService.findAllResponseReasons();
   }
 
   @Get('contact-channels')
-  findContactChannels() {
+  findAllContactChannels() {
     return this.catalogsService.findAllContactChannels();
   }
 
   @Get('duration-ranges')
-  findDurationRanges() {
+  findAllDurationRanges() {
     return this.catalogsService.findAllDurationRanges();
   }
 
   @Get('urgency-levels')
-  findUrgencyLevels() {
+  findAllUrgencyLevels() {
     return this.catalogsService.findAllUrgencyLevels();
   }
 }

@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { CallRecordsModule } from './call-records/call-records.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
 import { ConfigModule } from '@nestjs/config'; // <-- 1. IMPORTAR
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ConfigModule } from '@nestjs/config'; // <-- 1. IMPORTAR
     AuthModule,
     CallRecordsModule,
     CatalogsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

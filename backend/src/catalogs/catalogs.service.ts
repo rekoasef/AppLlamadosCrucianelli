@@ -1,5 +1,3 @@
-// backend/src/catalogs/catalogs.service.ts
-
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -7,7 +5,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class CatalogsService {
   constructor(private prisma: PrismaService) {}
 
-  // MÉTODO ELIMINADO: findAllBusinessUnits()
+  // --- MÉTODO REINTRODUCIDO ---
+  findAllBusinessUnits() {
+    return this.prisma.businessUnit.findMany();
+  }
 
   findAllCallerTypes() {
     return this.prisma.callerType.findMany();

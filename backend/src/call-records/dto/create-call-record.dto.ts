@@ -1,12 +1,7 @@
-// backend/src/call-records/dto/create-call-record.dto.ts
-
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 
 export class CreateCallRecordDto {
-  @IsString()
-  @IsNotEmpty()
-  callerTypeId: string;
-
+  // --- Campos existentes ---
   @IsString()
   @IsNotEmpty()
   contactName: string;
@@ -14,15 +9,23 @@ export class CreateCallRecordDto {
   @IsString()
   @IsOptional()
   machineSerialNumber?: string;
-
+  
   @IsString()
   @IsOptional()
-  machineTypeId?: string;
+  observations?: string;
 
   @IsString()
   @IsOptional()
   billedClient?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  callerTypeId: string;
   
+  @IsString()
+  @IsOptional()
+  machineTypeId?: string;
+
   @IsString()
   @IsOptional()
   dealershipId?: string;
@@ -30,10 +33,6 @@ export class CreateCallRecordDto {
   @IsString()
   @IsNotEmpty()
   inquiryAreaId: string;
-  
-  @IsString()
-  @IsOptional()
-  observations?: string;
 
   @IsString()
   @IsOptional()
@@ -42,12 +41,21 @@ export class CreateCallRecordDto {
   @IsString()
   @IsNotEmpty()
   contactChannelId: string;
-  
+
   @IsString()
   @IsNotEmpty()
   durationRangeId: string;
-  
+
   @IsString()
   @IsNotEmpty()
   urgencyLevelId: string;
+
+  // --- NUEVOS CAMPOS ---
+  @IsString()
+  @IsNotEmpty()
+  businessUnitId: string; // Ahora es obligatorio
+
+  @IsObject() // Validamos que sea un objeto
+  @IsOptional()
+  specificData?: any; // Nuestro "cajón de sastre"
 }
