@@ -18,25 +18,17 @@ model CallRecord {
   observations        String?  @db.Text
   status              CallStatus @default(OPEN)
   
-  // --- CAMPO NUEVO PARA DATOS ESPECÍFICOS ---
-  // Este es nuestro "cajón de sastre".
-  // Guardará un objeto JSON con los campos únicos de cada formulario.
   specificData        Json?
 
-  // --- RELACIÓN CON BUSINESSUNIT REINTRODUCIDA ---
-  // Ahora cada registro DEBE pertenecer a una unidad de negocio.
   businessUnit        BusinessUnit @relation(fields: [businessUnitId], references: [id])
   businessUnitId      String
 
-  // El usuario del call center que atendió la llamada
   handledBy           User?    @relation("HandledBy", fields: [handledById], references: [id])
   handledById         String?
 
-  // El usuario que creó el registro en el sistema
   createdByUser       User     @relation("CreatedBy", fields: [createdById], references: [id])
   createdById         String
 
-  // --- Relaciones con tablas de catálogo (se mantienen igual) ---
   callerType          CallerType     @relation(fields: [callerTypeId], references: [id])
   callerTypeId        String
   machineType         MachineType?   @relation(fields: [machineTypeId], references: [id])
@@ -56,11 +48,9 @@ model CallRecord {
   urgencyLevelId      String
 }
 
-// --- MODELO BUSINESSUNIT REINTRODUCIDO ---
-// Esencial para saber qué formulario mostrar en el frontend.
 model BusinessUnit {
   id          String       @id @default(cuid())
-  name        String       @unique // "Crucianelli", "Leaf", "Fertec"
+  name        String       @unique
   callRecords CallRecord[]
 }
 
@@ -76,7 +66,21 @@ model User {
   createdCalls CallRecord[] @relation("CreatedBy")
 }
 
-// ... (Los demás modelos de catálogo y enums se mantienen exactamente igual) ...
+model LeafProductType {
+  id    String @id @default(cuid())
+  name  String @unique
+}
+
+model ComplaintLocation {
+  id    String @id @default(cuid())
+  name  String @unique
+}
+
+// --- NUEVO MODELO PARA CATÁLOGO DE FERTEC ---
+model FertecMachineType {
+  id    String @id @default(cuid())
+  name  String @unique
+}
 
 model CallerType {
   id      String       @id @default(cuid())

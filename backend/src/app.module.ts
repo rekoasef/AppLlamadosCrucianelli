@@ -1,27 +1,23 @@
-// backend/src/app.module.ts
-
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
-import { CallRecordsModule } from './call-records/call-records.module';
 import { CatalogsModule } from './catalogs/catalogs.module';
-import { ConfigModule } from '@nestjs/config'; // <-- 1. IMPORTAR
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { CallRecordsModule } from './call-records/call-records.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ExportModule } from './export/export.module'; // 1. Importar el nuevo módulo
 
 @Module({
   imports: [
-    // 2. AÑADIR ESTA LÍNEA PRIMERO
-    // isGlobal: true hace que las variables de entorno estén disponibles en toda la app
-    ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
-    UsersModule,
-    AuthModule,
-    CallRecordsModule,
     CatalogsModule,
+    AuthModule,
+    UsersModule,
+    CallRecordsModule,
     DashboardModule,
+    ExportModule, // 2. Añadirlo a la lista de imports
   ],
   controllers: [AppController],
   providers: [AppService],

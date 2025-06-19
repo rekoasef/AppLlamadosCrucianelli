@@ -5,49 +5,32 @@ import { CatalogsService } from './catalogs.service';
 export class CatalogsController {
   constructor(private readonly catalogsService: CatalogsService) {}
 
-  // --- ENDPOINT REINTRODUCIDO ---
   @Get('business-units')
-  findAllBusinessUnits() {
-    return this.catalogsService.findAllBusinessUnits();
-  }
-
+  findAllBusinessUnits() { return this.catalogsService.findAllBusinessUnits(); }
   @Get('caller-types')
-  findAllCallerTypes() {
-    return this.catalogsService.findAllCallerTypes();
-  }
-
+  findAllCallerTypes() { return this.catalogsService.findAllCallerTypes(); }
   @Get('machine-types')
-  findAllMachineTypes() {
-    return this.catalogsService.findAllMachineTypes();
-  }
-
+  findAllMachineTypes() { return this.catalogsService.findAllMachineTypes(); }
   @Get('dealerships')
-  findAllDealerships() {
-    return this.catalogsService.findAllDealerships();
-  }
-
+  findAllDealerships() { return this.catalogsService.findAllDealerships(); }
   @Get('inquiry-areas')
-  findAllInquiryAreas() {
-    return this.catalogsService.findAllInquiryAreas();
-  }
-
+  findAllInquiryAreas() { return this.catalogsService.findAllInquiryAreas(); }
   @Get('response-reasons')
-  findAllResponseReasons() {
-    return this.catalogsService.findAllResponseReasons();
-  }
-
+  findAllResponseReasons() { return this.catalogsService.findAllResponseReasons(); }
   @Get('contact-channels')
-  findAllContactChannels() {
-    return this.catalogsService.findAllContactChannels();
-  }
-
+  findAllContactChannels() { return this.catalogsService.findAllContactChannels(); }
   @Get('duration-ranges')
-  findAllDurationRanges() {
-    return this.catalogsService.findAllDurationRanges();
-  }
-
+  findAllDurationRanges() { return this.catalogsService.findAllDurationRanges(); }
   @Get('urgency-levels')
-  findAllUrgencyLevels() {
-    return this.catalogsService.findAllUrgencyLevels();
+  findAllUrgencyLevels() { return this.catalogsService.findAllUrgencyLevels(); }
+  @Get('leaf-product-types')
+  findAllLeafProductTypes() { return this.catalogsService.findAllLeafProductTypes(); }
+  @Get('complaint-locations')
+  findAllComplaintLocations() { return this.catalogsService.findAllComplaintLocations(); }
+
+  // --- NUEVO ENDPOINT PARA FERTEC ---
+  @Get('fertec-machine-types')
+  findAllFertecMachineTypes() {
+    return this.catalogsService.findAllFertecMachineTypes();
   }
 }

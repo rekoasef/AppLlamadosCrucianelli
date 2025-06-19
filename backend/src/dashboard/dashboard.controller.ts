@@ -1,15 +1,19 @@
-// ... otros imports
-import { DashboardModule } from './dashboard/dashboard.module';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { DashboardService } from './dashboard.service';
+import { AuthGuard } from '@nestjs/passport';
 
-@Module({
-  imports: [
-    PrismaModule,
-    CatalogsModule,
-    AuthModule,
-    UsersModule,
-    CallRecordsModule,
-    DashboardModule, // <-- Añadir este
-  ],
-  // ...
-})
-export class AppModule {}
+@UseGuards(AuthGuard('jwt')) // ¡Protegemos todo el controlador!
+@Controller('dashboard')
+export class DashboardController {
+  constructor(private readonly dashboardService: DashboardService) {}
+
+  @Get('stats')
+  getStats() {
+    return this.dashboardService.getStats();
+  }
+
+  @Get('records-by-status')
+  getRecordsByStatus() {
+    return this.dashboardService.getRecordsByStatus();
+  }
+}

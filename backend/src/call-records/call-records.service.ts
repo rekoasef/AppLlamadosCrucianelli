@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCallRecordDto } from './dto/create-call-record.dto';
 import { UpdateCallRecordDto } from './dto/update-call-record.dto';
+import { QueryParamsDto } from './dto/query-params.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CallRecordsService {
@@ -16,27 +18,66 @@ export class CallRecordsService {
     });
   }
 
-  findAll() {
-    // ... (código existente)
-    return this.prisma.callRecord.findMany({
-      include: {
-        callerType: { select: { name: true } },
-        dealership: { select: { name: true } },
-        urgencyLevel: { select: { name: true } },
-        createdByUser: { select: { name: true } },
-        handledBy: { select: { name: true } },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  async findAll(queryParams: QueryParamsDto) {
+    const page = Number(queryParams.page) || 1;
+    const limit = Number(queryParams.limit) || 10;
+    const { search, status, urgencyLevelId, dealershipId } = queryParams;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CallRecordWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { contactName: { contains: search, mode: 'insensitive' } },
+        { machineSerialNumber: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (status) {
+      where.status = status;
+    }
+    if (urgencyLevelId) {
+      where.urgencyLevelId = urgencyLevelId;
+    }
+    if (dealershipId) {
+      where.dealershipId = dealershipId;
+    }
+
+    const [records, total] = await this.prisma.$transaction([
+      this.prisma.callRecord.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          callerType: { select: { name: true } },
+          dealership: { select: { name: true } },
+          urgencyLevel: { select: { name: true } },
+          createdByUser: { select: { name: true } },
+          handledBy: { select: { name: true } },
+          businessUnit: { select: { name: true } },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.callRecord.count({ where }),
+    ]);
+
+    return {
+      data: records,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string) {
-    // ... (código existente)
     const record = await this.prisma.callRecord.findUnique({
       where: { id },
       include: {
+        // --- ¡CAMBIO CLAVE! ---
+        // Añadimos la unidad de negocio a los datos que devolvemos.
+        businessUnit: true,
         callerType: true,
         machineType: true,
         dealership: true,
@@ -55,24 +96,19 @@ export class CallRecordsService {
     }
     return record;
   }
-  
+
   async update(id: string, updateCallRecordDto: UpdateCallRecordDto) {
-    // ... (código existente)
-    await this.findOne(id); 
-    
+    await this.findOne(id);
+
     return this.prisma.callRecord.update({
       where: { id },
       data: updateCallRecordDto,
     });
   }
 
-  // --- NUEVO MÉTODO ---
   async remove(id: string) {
-    // Nos aseguramos de que el registro exista antes de intentar borrarlo.
-    // findOne lanzará un error 404 si no lo encuentra.
     await this.findOne(id);
 
-    // Usamos prisma.delete para eliminar el registro.
     return this.prisma.callRecord.delete({
       where: { id },
     });

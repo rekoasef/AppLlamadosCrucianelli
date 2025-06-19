@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import { Toaster } from "react-hot-toast"; // 1. Importar el componente Toaster
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,18 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
-      {/* SOLUCIÓN:
-        - min-h-screen: Asegura que el body ocupe al menos toda la altura de la pantalla.
-        - flex flex-col: Convierte el body en un contenedor flexbox vertical.
-        - bg-crucianelli-light: Mantiene nuestro color de fondo.
-      */}
+    <html lang="es" className="h-full">
       <body className={`min-h-screen flex flex-col bg-crucianelli-light ${inter.className}`}>
         <AuthProvider>
+          {/* 2. Añadimos el componente Toaster aquí. Se encargará de renderizar las notificaciones. */}
+          <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
           <Navbar /> 
-          {/* SOLUCIÓN:
-            - flex-grow: Hace que el <main> se estire para ocupar todo el espacio vertical sobrante.
-          */}
           <main className="flex-grow">
             {children}
           </main>

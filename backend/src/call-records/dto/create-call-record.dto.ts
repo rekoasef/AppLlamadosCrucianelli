@@ -1,7 +1,6 @@
 import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 
 export class CreateCallRecordDto {
-  // --- Campos existentes ---
   @IsString()
   @IsNotEmpty()
   contactName: string;
@@ -13,21 +12,25 @@ export class CreateCallRecordDto {
   @IsString()
   @IsOptional()
   observations?: string;
-
+  
   @IsString()
   @IsOptional()
   billedClient?: string;
+  
+  // --- CORRECCIÓN ---
+  // Revertimos a @IsNotEmpty los campos que son relaciones obligatorias en la DB
+  // para asegurar la integridad de los datos.
 
   @IsString()
   @IsNotEmpty()
   callerTypeId: string;
   
   @IsString()
-  @IsOptional()
+  @IsOptional() // Este puede ser opcional
   machineTypeId?: string;
 
   @IsString()
-  @IsOptional()
+  @IsOptional() // Este puede ser opcional
   dealershipId?: string;
 
   @IsString()
@@ -35,7 +38,7 @@ export class CreateCallRecordDto {
   inquiryAreaId: string;
 
   @IsString()
-  @IsOptional()
+  @IsOptional() // Este puede ser opcional
   responseReasonId?: string;
   
   @IsString()
@@ -50,12 +53,12 @@ export class CreateCallRecordDto {
   @IsNotEmpty()
   urgencyLevelId: string;
 
-  // --- NUEVOS CAMPOS ---
+  // --- Campos que sí son siempre obligatorios ---
   @IsString()
   @IsNotEmpty()
-  businessUnitId: string; // Ahora es obligatorio
+  businessUnitId: string;
 
-  @IsObject() // Validamos que sea un objeto
+  @IsObject()
   @IsOptional()
-  specificData?: any; // Nuestro "cajón de sastre"
+  specificData?: any;
 }

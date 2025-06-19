@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext'; // 1. Importamos nuestro hook personalizado
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { login } = useAuth(); // 2. Obtenemos la función 'login' de nuestro contexto
+  const { login } = useAuth();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -32,11 +32,11 @@ export default function LoginPage() {
         throw new Error(data.message || 'Error al iniciar sesión');
       }
 
-      // 3. ¡Login exitoso! Usamos la función del contexto para gestionar el token.
-      // Esto se encargará de guardarlo en localStorage Y de actualizar el estado global.
       login(data.access_token);
 
-      router.push('/records');
+      // --- CORRECCIÓN ---
+      // Redirigimos al dashboard (la página raíz) después de iniciar sesión.
+      router.push('/');
 
     } catch (err: any) {
       setError(err.message);
