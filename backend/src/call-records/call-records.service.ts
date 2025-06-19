@@ -28,8 +28,8 @@ export class CallRecordsService {
 
     if (search) {
       where.OR = [
-        { contactName: { contains: search, mode: 'insensitive' } },
-        { machineSerialNumber: { contains: search, mode: 'insensitive' } },
+        { contactName: { contains: search } },
+        { machineSerialNumber: { contains: search } },
       ];
     }
     if (status) {

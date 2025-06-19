@@ -12,7 +12,7 @@ export class ExportService {
   async exportToExcel(queryParams: QueryParamsDto): Promise<Buffer> {
     const { search, status, urgencyLevelId, dealershipId } = queryParams;
     const where: Prisma.CallRecordWhereInput = {};
-    if (search) where.OR = [{ contactName: { contains: search, mode: 'insensitive' } }, { machineSerialNumber: { contains: search, mode: 'insensitive' } }];
+    if (search) where.OR = [{ contactName: { contains: search } }, { machineSerialNumber: { contains: search } }];
     if (status) where.status = status;
     if (urgencyLevelId) where.urgencyLevelId = urgencyLevelId;
     if (dealershipId) where.dealershipId = dealershipId;
@@ -46,7 +46,7 @@ export class ExportService {
   async exportToPdf(queryParams: QueryParamsDto): Promise<Buffer> {
     const { search, status, urgencyLevelId, dealershipId } = queryParams;
     const where: Prisma.CallRecordWhereInput = {};
-    if (search) where.OR = [{ contactName: { contains: search, mode: 'insensitive' } }, { machineSerialNumber: { contains: search, mode: 'insensitive' } }];
+    if (search) where.OR = [{ contactName: { contains: search} }, { machineSerialNumber: { contains: search } }];
     if (status) where.status = status;
     if (urgencyLevelId) where.urgencyLevelId = urgencyLevelId;
     if (dealershipId) where.dealershipId = dealershipId;

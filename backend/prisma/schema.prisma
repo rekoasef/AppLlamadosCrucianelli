@@ -10,48 +10,57 @@ datasource db {
 }
 
 model CallRecord {
-  id                  String   @id @default(cuid())
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                  String         @id @default(cuid())
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
   contactName         String
   machineSerialNumber String?
-  observations        String?  @db.Text
-  status              CallStatus @default(OPEN)
-  
+  observations        String?        
+  status              CallStatus     @default(OPEN)
   specificData        Json?
 
-  businessUnit        BusinessUnit @relation(fields: [businessUnitId], references: [id])
-  businessUnitId      String
-
-  handledBy           User?    @relation("HandledBy", fields: [handledById], references: [id])
-  handledById         String?
-
-  createdByUser       User     @relation("CreatedBy", fields: [createdById], references: [id])
-  createdById         String
-
-  callerType          CallerType     @relation(fields: [callerTypeId], references: [id])
-  callerTypeId        String
-  machineType         MachineType?   @relation(fields: [machineTypeId], references: [id])
-  machineTypeId       String?
-  billedClient        String?
-  dealership          Dealership?    @relation(fields: [dealershipId], references: [id])
-  dealershipId        String?
-  inquiryArea         InquiryArea    @relation(fields: [inquiryAreaId], references: [id])
-  inquiryAreaId       String
-  responseReason      ResponseReason? @relation(fields: [responseReasonId], references: [id])
-  responseReasonId    String?
-  contactChannel      ContactChannel @relation(fields: [contactChannelId], references: [id])
-  contactChannelId    String
-  durationRange       DurationRange  @relation(fields: [durationRangeId], references: [id])
-  durationRangeId     String
-  urgencyLevel        UrgencyLevel   @relation(fields: [urgencyLevelId], references: [id])
-  urgencyLevelId      String
+  businessUnit     BusinessUnit   @relation(fields: [businessUnitId], references: [id])
+  businessUnitId   String
+  handledBy        User?          @relation("HandledBy", fields: [handledById], references: [id])
+  handledById      String?
+  createdByUser    User           @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById      String
+  callerType       CallerType     @relation(fields: [callerTypeId], references: [id])
+  callerTypeId     String
+  machineType      MachineType?   @relation(fields: [machineTypeId], references: [id])
+  machineTypeId    String?
+  billedClient     String?
+  dealership       Dealership?    @relation(fields: [dealershipId], references: [id])
+  dealershipId     String?
+  inquiryArea      InquiryArea    @relation(fields: [inquiryAreaId], references: [id])
+  inquiryAreaId    String
+  responseReason   ResponseReason? @relation(fields: [responseReasonId], references: [id])
+  responseReasonId String?
+  contactChannel   ContactChannel @relation(fields: [contactChannelId], references: [id])
+  contactChannelId String
+  durationRange    DurationRange  @relation(fields: [durationRangeId], references: [id])
+  durationRangeId  String
+  urgencyLevel     UrgencyLevel   @relation(fields: [urgencyLevelId], references: [id])
+  urgencyLevelId   String
 }
 
 model BusinessUnit {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  callRecords CallRecord[]
+  id   String @id @default(cuid())
+  name String @unique
+
+  callRecords       CallRecord[]
+  // --- RELACIONES AÑADIDAS ---
+  callerTypes       CallerType[]      @relation("BusinessUnitCallerTypes")
+  machineTypes      MachineType[]     @relation("BusinessUnitMachineTypes")
+  dealerships       Dealership[]      @relation("BusinessUnitDealerships")
+  inquiryAreas      InquiryArea[]     @relation("BusinessUnitInquiryAreas")
+  responseReasons   ResponseReason[]  @relation("BusinessUnitResponseReasons")
+  contactChannels   ContactChannel[]  @relation("BusinessUnitContactChannels")
+  durationRanges    DurationRange[]   @relation("BusinessUnitDurationRanges")
+  urgencyLevels     UrgencyLevel[]    @relation("BusinessUnitUrgencyLevels")
+  leafProductTypes  LeafProductType[] @relation("BusinessUnitLeafProductTypes")
+  // complaintLocations no necesita relacionarse con BusinessUnit directamente si no es necesario
+  fertecMachineTypes FertecMachineType[] @relation("BusinessUnitFertecMachineTypes")
 }
 
 model User {
@@ -66,68 +75,79 @@ model User {
   createdCalls CallRecord[] @relation("CreatedBy")
 }
 
-model LeafProductType {
-  id    String @id @default(cuid())
-  name  String @unique
-}
-
-model ComplaintLocation {
-  id    String @id @default(cuid())
-  name  String @unique
-}
-
-// --- NUEVO MODELO PARA CATÁLOGO DE FERTEC ---
-model FertecMachineType {
-  id    String @id @default(cuid())
-  name  String @unique
-}
+// --- MODELOS DE CATÁLOGO CORREGIDOS ---
 
 model CallerType {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitCallerTypes") // <-- RELACIÓN AÑADIDA
 }
 
 model MachineType {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitMachineTypes") // <-- RELACIÓN AÑADIDA
 }
 
 model Dealership {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitDealerships") // <-- RELACIÓN AÑADIDA
 }
 
 model InquiryArea {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitInquiryAreas") // <-- RELACIÓN AÑADIDA
 }
 
 model ResponseReason {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitResponseReasons") // <-- RELACIÓN AÑADIDA
 }
 
 model ContactChannel {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitContactChannels") // <-- RELACIÓN AÑADIDA
 }
 
 model DurationRange {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitDurationRanges") // <-- RELACIÓN AÑADIDA
 }
 
 model UrgencyLevel {
-  id      String       @id @default(cuid())
-  name    String       @unique
-  records CallRecord[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  records       CallRecord[]
+  businessUnits BusinessUnit[] @relation("BusinessUnitUrgencyLevels") // <-- RELACIÓN AÑADIDA
+}
+
+model LeafProductType {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  businessUnits BusinessUnit[] @relation("BusinessUnitLeafProductTypes") // <-- RELACIÓN AÑADIDA
+}
+
+model ComplaintLocation { // Este modelo no parece necesitar relación directa, lo dejamos como estaba
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+model FertecMachineType {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  businessUnits BusinessUnit[] @relation("BusinessUnitFertecMachineTypes") // <-- RELACIÓN AÑADIDA
 }
 
 enum UserRole {

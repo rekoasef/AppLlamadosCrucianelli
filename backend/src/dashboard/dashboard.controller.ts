@@ -1,19 +1,22 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { DashboardService } from './dashboard.service';
-import { AuthGuard } from '@nestjs/passport';
+// backend/src/dashboard/dashboard.controller.ts
 
-@UseGuards(AuthGuard('jwt')) // ¡Protegemos todo el controlador!
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { DashboardService } from './dashboard.service';
+// RUTA CORREGIDA: Usamos '../' para subir un nivel y luego entrar a 'auth'
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+@UseGuards(JwtAuthGuard) // Protegemos todas las rutas del dashboard
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
-  @Get('stats')
-  getStats() {
-    return this.dashboardService.getStats();
+  @Get('general')
+  getGeneralStats() {
+    return this.dashboardService.getGeneralStats();
   }
 
-  @Get('records-by-status')
-  getRecordsByStatus() {
-    return this.dashboardService.getRecordsByStatus();
+  @Get('company/:businessUnitId')
+  getCompanyStats(@Param('businessUnitId') businessUnitId: string) {
+    return this.dashboardService.getCompanyStats(businessUnitId);
   }
 }

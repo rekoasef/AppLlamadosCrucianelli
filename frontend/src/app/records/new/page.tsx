@@ -35,10 +35,10 @@ export default function NewRecordPage() {
   const [formData, setFormData] = useState<Partial<FormData & SpecificData>>({});
   
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(false); // <--- NUEVO ESTADO
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // AÑADIMOS FERTEC A LA LÓGICA
   const formConfig = useMemo(() => {
     const selectedUnit = businessUnits.find(bu => bu.id === selectedBusinessUnitId);
     if (selectedUnit?.name === 'Crucianelli') return crucianelliFormConfig;
@@ -47,32 +47,67 @@ export default function NewRecordPage() {
     return [];
   }, [selectedBusinessUnitId, businessUnits]);
 
-  // CARGAMOS EL NUEVO CATÁLOGO DE FERTEC
+  // --- PRIMER useEffect: Carga solo las Unidades de Negocio al inicio ---
   useEffect(() => {
     if (!token) return;
-    const fetchInitialData = async () => {
+    const fetchBusinessUnits = async () => {
       try {
-        const catalogEndpoints = ['business-units', 'caller-types', 'machine-types', 'dealerships', 'inquiry-areas', 'response-reasons', 'contact-channels', 'duration-ranges', 'urgency-levels', 'leaf-product-types', 'complaint-locations', 'fertec-machine-types'];
-        const responses = await Promise.all(
-          catalogEndpoints.map(endpoint => fetch(`http://localhost:3000/catalogs/${endpoint}`, { headers: { 'Authorization': `Bearer ${token}` } }))
-        );
-        const jsonData = await Promise.all(responses.map(res => res.json()));
-        
-        setBusinessUnits(jsonData[0]);
-        const catalogsData = catalogEndpoints.slice(1).reduce((acc, endpoint, index) => {
-          const key = endpoint.replace(/-(\w)/g, (_, c) => c.toUpperCase());
-          acc[key] = jsonData[index + 1];
-          return acc;
-        }, {} as Catalogs);
-        setCatalogs(catalogsData);
+        const response = await fetch(`http://localhost:3000/catalogs/business-units`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!response.ok) throw new Error('No se pudo cargar las unidades de negocio.');
+        const data = await response.json();
+        setBusinessUnits(data);
       } catch (err: any) {
         setError("Error al cargar datos iniciales. " + err.message);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchInitialData();
+    fetchBusinessUnits();
   }, [token]);
+
+  // --- NUEVO useEffect: Se dispara CADA VEZ que seleccionas una Unidad de Negocio ---
+  useEffect(() => {
+    // Si no hay token o no has seleccionado una unidad, no hace nada.
+    if (!token || !selectedBusinessUnitId) {
+      setCatalogs({}); // Limpia los catálogos si deseleccionas la unidad
+      return;
+    }
+
+    const fetchFilteredCatalogs = async () => {
+      setIsLoadingCatalogs(true); // Muestra un indicador de carga para los menús
+      setError(null);
+      try {
+        // Lista de catálogos que necesitamos filtrar
+        const catalogEndpoints = ['caller-types', 'machine-types', 'dealerships', 'inquiry-areas', 'response-reasons', 'contact-channels', 'duration-ranges', 'urgency-levels', 'leaf-product-types', 'complaint-locations', 'fertec-machine-types'];
+        
+        // Hacemos una petición para cada catálogo, pero AÑADIENDO el businessUnitId
+        const responses = await Promise.all(
+          catalogEndpoints.map(endpoint => 
+            fetch(`http://localhost:3000/catalogs/${endpoint}?businessUnitId=${selectedBusinessUnitId}`, { 
+              headers: { 'Authorization': `Bearer ${token}` } 
+            })
+          )
+        );
+
+        const jsonData = await Promise.all(responses.map(res => res.json()));
+        
+        const catalogsData = catalogEndpoints.reduce((acc, endpoint, index) => {
+          const key = endpoint.replace(/-(\w)/g, (_, c) => c.toUpperCase());
+          acc[key] = jsonData[index];
+          return acc;
+        }, {} as Catalogs);
+        
+        setCatalogs(catalogsData);
+
+      } catch (err: any) {
+        setError("Error al cargar los catálogos para esta unidad de negocio. " + err.message);
+      } finally {
+        setIsLoadingCatalogs(false);
+      }
+    };
+
+    fetchFilteredCatalogs();
+  }, [selectedBusinessUnitId, token]); // <--- Se ejecuta cada vez que cambia el ID seleccionado
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -129,14 +164,16 @@ export default function NewRecordPage() {
         <select id="businessUnit" value={selectedBusinessUnitId} onChange={(e) => {
             setSelectedBusinessUnitId(e.target.value);
             setFormData({});
-        }}
+          }}
           className="mt-1 block w-full md:w-1/3 border-gray-300 rounded-md shadow-sm text-crucianelli-dark">
           <option value="">Seleccionar empresa...</option>
           {businessUnits.map(bu => <option key={bu.id} value={bu.id}>{bu.name}</option>)}
         </select>
       </div>
       
-      {selectedBusinessUnitId && (
+      {isLoadingCatalogs && <div className="p-8 text-center">Cargando opciones del formulario...</div>}
+
+      {selectedBusinessUnitId && !isLoadingCatalogs && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-6">
             <div className="bg-white p-6 rounded-lg shadow"><h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Detalles del Contacto</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-6">{formConfig.filter(f => f.section === 'contact').map(field => (<div key={field.name}><label htmlFor={field.name} className="block text-sm font-medium text-crucianelli-gray">{field.label}</label><DynamicField field={field} value={formData[field.name as keyof FormData]} catalogs={catalogs} handleChange={handleChange} /></div>))}</div></div>
@@ -146,12 +183,12 @@ export default function NewRecordPage() {
           <div className="md:col-span-1 space-y-6">
             <div className="bg-white p-6 rounded-lg shadow"><h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Clasificación</h2><div className="space-y-4">{formConfig.filter(f => f.section === 'classification').map(field => (<div key={field.name}><label htmlFor={field.name} className="block text-sm font-medium text-crucianelli-gray">{field.label}</label><DynamicField field={field} value={formData[field.name as keyof FormData]} catalogs={catalogs} handleChange={handleChange} /></div>))}</div></div>
             <div className="bg-white p-6 rounded-lg shadow">
-               <h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Acciones</h2>
-               {error && <div className="mb-4 text-red-600 text-sm bg-red-100 p-3 rounded-md">{error}</div>}
-               <div className="flex flex-col gap-4">
-                <button type="submit" disabled={isSubmitting} className="w-full px-4 py-2 text-sm font-medium text-white bg-crucianelli-red rounded-md hover:bg-opacity-90 disabled:bg-opacity-50">{isSubmitting ? 'Guardando...' : 'Guardar Registro'}</button>
-                <button type="button" onClick={() => router.push('/records')} className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
-              </div>
+                <h2 className="text-lg font-semibold text-crucianelli-dark mb-4">Acciones</h2>
+                {error && <div className="mb-4 text-red-600 text-sm bg-red-100 p-3 rounded-md">{error}</div>}
+                <div className="flex flex-col gap-4">
+                 <button type="submit" disabled={isSubmitting} className="w-full px-4 py-2 text-sm font-medium text-white bg-crucianelli-red rounded-md hover:bg-opacity-90 disabled:bg-opacity-50">{isSubmitting ? 'Guardando...' : 'Guardar Registro'}</button>
+                 <button type="button" onClick={() => router.push('/records')} className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300">Cancelar</button>
+               </div>
             </div>
           </div>
         </form>
